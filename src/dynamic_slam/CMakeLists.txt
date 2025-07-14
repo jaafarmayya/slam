@@ -30,6 +30,13 @@ endif()
 ament_package()
 find_package(robot_state_publisher REQUIRED)
 find_package(turtlebot3_description REQUIRED)
+
+install(
+  PROGRAMS
+    src/slam_image_subscriber.py
+  DESTINATION lib/${PROJECT_NAME}
+)
+
 install(
   DIRECTORY launch
   DESTINATION share/${PROJECT_NAME}
