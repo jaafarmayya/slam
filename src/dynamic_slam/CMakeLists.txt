@@ -34,7 +34,8 @@ find_package(turtlebot3_description REQUIRED)
 install(
   PROGRAMS
     src/slam_image_subscriber.py
-  DESTINATION lib/${PROJECT_NAME}
+    src/lidar_subscriber.py
+  DESTINATION libexec/${PROJECT_NAME}
 )
 
 install(

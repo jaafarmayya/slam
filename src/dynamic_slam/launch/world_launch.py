@@ -16,23 +16,32 @@ def generate_launch_description():
         ),
         launch_arguments={
             'world': world_file,
-            'robot_model': 'waffle',
+            'model': 'burger',
             'use_sim_time': 'true',
             'gui': 'true',
         }.items()
     )
 
-    slam_image_subscriber = Node(
+    lidar_subscriber = Node(
         package='dynamic_slam',
-        executable='slam_image_subscriber.py',
-        name='slam_image_subscriber',
+        executable='lidar_subscriber.py',
+        name='lidar_subscriber',
         output='screen',
-        parameters=[{'use_sim_time': True}],
+        emulate_tty=True,                
+        arguments=['--ros-args', '--log-level', 'dynamic_slam:=DEBUG'],
     )
+
+    # slam_image_subscriber = Node(
+    #     package='dynamic_slam',
+    #     executable='slam_image_subscriber.py',
+    #     name='slam_image_subscriber',
+    #     output='screen',
+    #     parameters=[{'use_sim_time': True}],
+    # )
 
     teleop_cmd = [
         'bash', '-lc',
-        'export TURTLEBOT3_MODEL=waffle && ' 
+        'export TURTLEBOT3_MODEL=burger && ' 
         'ros2 run turtlebot3_teleop teleop_keyboard'
     ]
     teleop_window = ExecuteProcess(
@@ -42,6 +51,7 @@ def generate_launch_description():
 
     return LaunchDescription([
         gazebo_launch,
-        slam_image_subscriber,
+        # slam_image_subscriber,
+        lidar_subscriber,
         teleop_window,
     ])
