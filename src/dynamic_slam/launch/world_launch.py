@@ -26,7 +26,7 @@ def generate_launch_description():
 
     slam_toolbox_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
-            os.path.join(slam_toolbox_pkg, 'launch', 'online_async_launch.py')
+            os.path.join(dy, 'launch', 'online_async_launch.py')
         ),
         launch_arguments={
             'use_sim_time': 'true'
@@ -52,8 +52,8 @@ def generate_launch_description():
     )
     scan_static_filter = Node(
         package='dynamic_slam',
-        executable='scan_static_filter.py',
-        name='scan_static_filter',
+        executable='median_filter.py',
+        name='median_filter',
         output='screen',
         emulate_tty=True,
         arguments=['--ros-args', '--log-level', 'dynamic_slam:=DEBUG'],
