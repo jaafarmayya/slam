@@ -30,15 +30,31 @@ endif()
 ament_package()
 find_package(robot_state_publisher REQUIRED)
 find_package(turtlebot3_description REQUIRED)
+find_package(gazebo_msgs REQUIRED)
+find_package(geometry_msgs REQUIRED)
 
 install(
   PROGRAMS
     src/slam_image_subscriber.py
     src/lidar_subscriber.py
-  DESTINATION libexec/${PROJECT_NAME}
+    src/scan_static_filter.py
+    src/move_box.py 
+  DESTINATION lib/${PROJECT_NAME}
 )
 
 install(
   DIRECTORY launch
+  DESTINATION share/${PROJECT_NAME}
+)
+install(
+  DIRECTORY models
+  DESTINATION share/${PROJECT_NAME}
+)
+install(
+  DIRECTORY worlds
+  DESTINATION share/${PROJECT_NAME}
+)
+install(
+  DIRECTORY rviz
   DESTINATION share/${PROJECT_NAME}
 )
