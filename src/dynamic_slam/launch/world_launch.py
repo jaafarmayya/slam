@@ -26,7 +26,7 @@ def generate_launch_description():
 
     slam_toolbox_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
-            os.path.join(dy, 'launch', 'online_async_launch.py')
+            os.path.join(dy, 'launch', 'online_sync_launch.py')
         ),
         launch_arguments={
             'use_sim_time': 'true'
@@ -50,14 +50,7 @@ def generate_launch_description():
         emulate_tty=True,
         arguments=['--ros-args', '--log-level', 'dynamic_slam:=DEBUG'],
     )
-    scan_static_filter = Node(
-        package='dynamic_slam',
-        executable='median_filter.py',
-        name='median_filter',
-        output='screen',
-        emulate_tty=True,
-        arguments=['--ros-args', '--log-level', 'dynamic_slam:=DEBUG'],
-    )
+   
 
     spawn_box = Node(
         package='gazebo_ros',
@@ -85,14 +78,34 @@ def generate_launch_description():
         cmd=['xterm', '-hold', '-e'] + teleop_cmd,
         output='screen',
     )
-
+    lidar_static_tf = Node(
+        package='tf2_ros',
+        executable='static_transform_publisher',
+        name='lidar_static_tf',
+        output='screen',
+        arguments=[
+            '0', '0', '0',     # x y z offset
+            '0', '0', '0',     # roll pitch yaw
+            'base_footprint',  # parent frame
+            'base_scan'        # child frame
+        ],
+    )
+    scan_static_filter = Node(
+        package='dynamic_slam',
+        executable='scan_based_filter.py',
+        name='scan_based_filter',
+        output='screen',
+        emulate_tty=True,
+        arguments=['--ros-args', '--log-level', 'dynamic_slam:=DEBUG'],
+    )
     return LaunchDescription([
         gazebo_launch,
         spawn_box,
         lidar_subscriber,
-        scan_static_filter,
         move_box_node,
         teleop_window,
         slam_toolbox_launch,
         rviz_launch,
+        scan_static_filter,
+        lidar_static_tf
     ])
