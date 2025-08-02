@@ -90,14 +90,24 @@ def generate_launch_description():
             'base_scan'        # child frame
         ],
     )
-    scan_static_filter = Node(
+    # scan_static_filter = Node(
+    #     package='dynamic_slam',
+    #     executable='scan_based_filter.py',
+    #     name='scan_based_filter',
+    #     output='screen',
+    #     emulate_tty=True,
+    #     arguments=['--ros-args', '--log-level', 'dynamic_slam:=DEBUG'],
+    # )
+    localization_error_node = Node(
         package='dynamic_slam',
-        executable='scan_based_filter.py',
-        name='scan_based_filter',
+        executable='localization_error_node.py',     
+        name='localization_error_node',
         output='screen',
         emulate_tty=True,
+        parameters=[{'use_sim_time': True}],        
         arguments=['--ros-args', '--log-level', 'dynamic_slam:=DEBUG'],
     )
+
     return LaunchDescription([
         gazebo_launch,
         spawn_box,
@@ -106,6 +116,7 @@ def generate_launch_description():
         teleop_window,
         slam_toolbox_launch,
         rviz_launch,
-        scan_static_filter,
+        # scan_static_filter,
+        localization_error_node,
         lidar_static_tf
     ])
