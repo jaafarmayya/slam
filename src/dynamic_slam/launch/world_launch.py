@@ -110,9 +110,9 @@ def generate_launch_description():
 
     return LaunchDescription([
         gazebo_launch,
-        spawn_box,
+        # spawn_box,
         lidar_subscriber,
-        move_box_node,
+        # move_box_node,
         teleop_window,
         slam_toolbox_launch,
         rviz_launch,

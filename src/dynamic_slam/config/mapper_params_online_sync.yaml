@@ -40,8 +40,8 @@ slam_toolbox:
     # General Parameters
     use_scan_matching: true
     use_scan_barycenter: true
-    minimum_travel_distance: 0.5
-    minimum_travel_heading: 0.5
+    minimum_travel_distance: 0.25
+    minimum_travel_heading: 0.25
     scan_buffer_size: 10
     scan_buffer_maximum_scan_distance: 10.0
     link_match_minimum_response_fine: 0.1  
@@ -74,4 +74,4 @@ slam_toolbox:
     minimum_distance_penalty: 0.5
     use_response_expansion: true
     min_pass_through: 2
-    occupancy_threshold: 0.4
+    occupancy_threshold: 0.1
