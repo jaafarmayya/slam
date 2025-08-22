@@ -1,5 +1,5 @@
 
-# LiDAR SLAM (Grid-Based Method)
+# Grid-Based LiDAR SLAM for Dynamic Environments
 
 This repository contains the implementation and evaluation of a **grid-based LiDAR SLAM** approach with dynamic object filtering in a TurtleBot3 simulation environment. The experiments focus on mapping and localization performance under dynamic conditions.
 
