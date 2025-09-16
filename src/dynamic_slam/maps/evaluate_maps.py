@@ -29,11 +29,10 @@ def normalized_nearest_cell_error(gt_map, test_map):
     return np.mean(distances)
 
 def main():
-    pkg_dir = get_package_share_directory("dynamic_slam")
-    maps_dir = os.path.join(pkg_dir, "maps")
+    script_dir = os.path.dirname(os.path.realpath(__file__))
 
-    gt_map_path = os.path.join(maps_dir, "static.pgm")
-    test_map_path = os.path.join(maps_dir, "map.pgm")
+    gt_map_path   = os.path.join(script_dir, "static.pgm")
+    test_map_path = os.path.join(script_dir, "map.pgm")
 
     gt = load_map(gt_map_path)
     test = load_map(test_map_path)

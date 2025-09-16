@@ -5,8 +5,7 @@ from nav_msgs.msg import Odometry
 from sensor_msgs.msg import LaserScan
 import numpy as np
 import math
-from collections import deque
-from scipy.spatial import cKDTree as KDTree
+from sensor_msgs.msg import LaserScan
 
 class OdomScanTransformer(Node):
     def __init__(self):
@@ -15,33 +14,32 @@ class OdomScanTransformer(Node):
         self.odom_x = 0.0
         self.odom_y = 0.0
         self.odom_yaw = 0.0
-
-        # parameters
-        self.declare_parameter('distance_threshold', 0.05)       # meters
-        self.declare_parameter('static_window_size', 5)         # number of scans in static map
-        self.declare_parameter('warmup_scans', 5)               # skip filtering until this many scans
-        self.dist_thresh = self.get_parameter('distance_threshold').value
-        self.window_size = self.get_parameter('static_window_size').value
-        self.warmup_scans = self.get_parameter('warmup_scans').value
-
-        # buffer for last N static scans
-        self.static_window = deque(maxlen=self.window_size)
-        self.scan_count = 0
+      
+        self.first_scan_cached = False
 
         # subscribe to odometry
-        self.create_subscription(Odometry, '/odom', self.odom_callback, 10)
-        # subscribe to scan
-        self.create_subscription(LaserScan, '/scan', self.scan_callback, 10)
-        # publisher for filtered static scan
-        self.pub = self.create_publisher(LaserScan, '/static_scan', 10)
+        self.create_subscription(
+            Odometry, '/odom', self.odom_callback, 10)
 
-        self.get_logger().info('Odom↔Scan transformer initialized with window_size=%d, threshold=%.3f' % (
-            self.window_size, self.dist_thresh))
+        # subscribe to scan
+        self.create_subscription(
+            LaserScan, '/scan', self.scan_callback, 10)
+        
+        self.prev_points = None    # will hold Nx2 array of past scan world‐points
+        self.prev_idxs   = None  
+        self.declare_parameter('distance_threshold', 0.05)    # meters
+        self.dist_thresh = self.get_parameter('distance_threshold').value
+
+        # publish filtered scans
+        self.pub = self.create_publisher(LaserScan, '/static_scan', 10)
+        self.get_logger().info('Odom↔Scan transformer initialized')
 
     def odom_callback(self, msg: Odometry):
+        # extract pose.x, pose.y, yaw
         px = msg.pose.pose.position.x
         py = msg.pose.pose.position.y
         q = msg.pose.pose.orientation
+        # convert quaternion to yaw
         siny = 2.0 * (q.w * q.z + q.x * q.y)
         cosy = 1.0 - 2.0 * (q.y * q.y + q.z * q.z)
         yaw = math.atan2(siny, cosy)
@@ -51,53 +49,60 @@ class OdomScanTransformer(Node):
         self.odom_yaw = yaw
 
     def scan_callback(self, msg: LaserScan):
-        # build ranges & angles
+        # 1) build ranges & angles
         ranges = np.array(msg.ranges)
         angles = msg.angle_min + np.arange(len(ranges)) * msg.angle_increment
 
-        # valid beams mask
+        # 2) pick only valid beams
         valid = (ranges > msg.range_min) & (ranges < msg.range_max) & np.isfinite(ranges)
         idxs  = np.where(valid)[0]
         if idxs.size == 0:
             self.get_logger().warning('No valid beams, skipping')
             return
 
-        # compute world-frame points
+        # 3) compute world-frame points for this scan
         x_s = ranges[idxs] * np.cos(angles[idxs])
         y_s = ranges[idxs] * np.sin(angles[idxs])
-        ct, st = math.cos(self.odom_yaw), math.sin(self.odom_yaw)
+        ct, st = np.cos(self.odom_yaw), np.sin(self.odom_yaw)
         x_w = ct * x_s - st * y_s + self.odom_x
         y_w = st * x_s + ct * y_s + self.odom_y
-        pts_w = np.vstack((x_w, y_w)).T  # (M,2)
+        pts_w = np.vstack((x_w, y_w)).T   # shape=(M,2)
 
-        self.scan_count += 1
-        # warm-up: fill static_window
-        if self.scan_count <= self.warmup_scans:
-            self.static_window.append(pts_w.copy())
-            self.get_logger().info(f'Warmup [{self.scan_count}/{self.warmup_scans}]: caching scan')
+        # —— two-scan startup gate —— 
+        if not self.first_scan_cached:
+            # first scan: just cache, do not publish
+            self.prev_points = pts_w.copy()
+            self.prev_idxs   = idxs.copy()
+            self.first_scan_cached = True
+            self.get_logger().info(
+                f'Cached initial scan ({len(idxs)} points); filtering starts next frame'
+            )
             return
 
-        # build KDTree from accumulated static map
-        static_pts = np.vstack(self.static_window)
-        tree = KDTree(static_pts)
+        # —— guard against completely emptied cache —— 
+        if self.prev_points.shape[0] == 0:
+            self.prev_points = pts_w.copy()
+            self.prev_idxs   = idxs.copy()
+            self.get_logger().info(
+                'Previous static cache empty: recaching current scan and skipping filter'
+            )
+            return
 
-        # nearest distances
-        min_dists, _ = tree.query(pts_w, k=1)
+        # 4) compute nearest-neighbor distances to previous static points
+        diff      = self.prev_points[np.newaxis, :, :] - pts_w[:, np.newaxis, :]
+        dists     = np.linalg.norm(diff, axis=2)      # (M,P)
+        min_dists = dists.min(axis=1)                 # (M,)
 
-        # detect new beams compared to last static window tail
-        last_static = self.static_window[-1]
-        # flatten all last scan idxs via simple lookup of coordinate equality is hard; we skip new_occ for simplicity
-        new_occ = np.zeros_like(min_dists, dtype=bool)
+        # 5) detect new beams (free→occupied)
+        new_occ = ~np.isin(idxs, self.prev_idxs)
+        self.get_logger().info(f'new_occupied beams: {new_occ.sum()}/{len(idxs)}')
 
-        # dynamic mask: points far from all static map points
-        dynamic_mask = min_dists > self.dist_thresh
-        self.get_logger().info(f'Dynamic beams: {dynamic_mask.sum()}/{len(idxs)}')
-
-        # filter out dynamic beams
+        # 6) build dynamic mask and filter
+        dynamic_mask = (min_dists > self.dist_thresh) | new_occ
         filtered = ranges.copy()
         filtered[idxs[dynamic_mask]] = float('inf')
 
-        # publish filtered static scan
+        # 7) publish the filtered scan
         out = LaserScan(
             header=msg.header,
             angle_min=msg.angle_min,
@@ -112,13 +117,10 @@ class OdomScanTransformer(Node):
         )
         self.pub.publish(out)
 
-        # update static window: append current static points
-        static_now = pts_w[~dynamic_mask]
-        if static_now.size > 0:
-            self.static_window.append(static_now.copy())
-        else:
-            self.get_logger().warning('All points dynamic: static map unchanged')
-
+        # 8) update cache for next iteration
+        static_idxs = idxs[~dynamic_mask]
+        self.prev_points = pts_w[~dynamic_mask].copy()
+        self.prev_idxs   = static_idxs.copy()
 
 def main(args=None):
     rclpy.init(args=args)
