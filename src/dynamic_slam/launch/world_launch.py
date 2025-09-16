@@ -110,16 +110,11 @@ def generate_launch_description():
         emulate_tty=True,
         arguments=['--ros-args', '--log-level', 'dynamic_slam:=DEBUG'],
     )
+    
     return LaunchDescription([
         folder_arg,
         gazebo_launch,
-        lidar_subscriber,
         teleop_window,
         slam_toolbox_launch,
         rviz_launch,
-        localization_error_node,
-        lidar_static_tf,  
-        spawn_box,
-        move_box_node,
-        scan_static_filter
     ])
