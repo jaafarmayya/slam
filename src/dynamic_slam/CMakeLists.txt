@@ -38,7 +38,10 @@ install(
     src/slam_image_subscriber.py
     src/lidar_subscriber.py
     src/median_filter.py
+    src/mapspeed.py
     src/move_box.py 
+    src/scan_based_filter.py 
+    src/localization_error_node.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

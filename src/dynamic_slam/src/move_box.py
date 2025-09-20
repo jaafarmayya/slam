@@ -21,7 +21,7 @@ class BoxMover(Node):
             self.get_logger().info('Waiting for /set_entity_state...')
 
       
-        self.timer = self.create_timer(0.1, self.move_callback)
+        self.timer = self.create_timer(1, self.move_callback)
 
     def move_callback(self):
        
