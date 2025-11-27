@@ -110,6 +110,14 @@ def generate_launch_description():
         emulate_tty=True,
         arguments=['--ros-args', '--log-level', 'dynamic_slam:=DEBUG'],
     )
+    dogma_lite = Node(
+        package='dynamic_slam',
+        executable='dogma_lite.py',
+        name='dogma_lite',
+        output='screen',
+        emulate_tty=True,
+        arguments=['--ros-args', '--log-level', 'dynamic_slam:=DEBUG'],
+    )
     return LaunchDescription([
         folder_arg,
         gazebo_launch,
@@ -121,5 +129,6 @@ def generate_launch_description():
         #lidar_static_tf,  
         spawn_box,
         move_box_node,
+        dogma_lite
         #scan_static_filter
     ])

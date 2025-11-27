@@ -42,7 +42,8 @@ install(
     src/move_box.py 
     src/scan_based_filter.py 
     src/localization_error_node.py
-  DESTINATION lib/${PROJECT_NAME}
+    src/dogma_lite.py
+  DESTINATION libexec/${PROJECT_NAME}
 )
 
 install(
