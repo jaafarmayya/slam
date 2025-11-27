@@ -1,7 +1,7 @@
 import os
 
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, ExecuteProcess,SetEnvironmentVariable
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, ExecuteProcess
 from launch.substitutions import LaunchConfiguration
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch_ros.actions import Node
@@ -81,7 +81,7 @@ def generate_launch_description():
         emulate_tty=True,
         parameters=[
             {'use_sim_time': True},
-            {'folder_name': folder_name},  
+            {'folder_name': folder_name},      # ← pass the launch‐arg here
         ],
         arguments=['--ros-args', '--log-level', 'dynamic_slam:=DEBUG'],
     )
@@ -102,53 +102,24 @@ def generate_launch_description():
         name='move_box',
         output='screen',
     )
-    median_filter = Node(
+    scan_static_filter = Node(
         package='dynamic_slam',
-        executable='median_filter.py',
-        name='median_filter',
+        executable='scan_based_filter.py',
+        name='scan_based_filter',
         output='screen',
         emulate_tty=True,
         arguments=['--ros-args', '--log-level', 'dynamic_slam:=DEBUG'],
     )
-    nav2_share = get_package_share_directory('nav2_bringup')
-    nav2_params = os.path.join(nav2_share, 'params', 'nav2_params.yaml')
-
-    nav2_bringup_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            os.path.join(nav2_share, 'launch', 'bringup_launch.py')
-        ),
-        launch_arguments={
-            'use_sim_time': 'true',
-            'autostart': 'true',
-            'map': '/home/jaafar/slam_ws/src/dynamic_slam/maps/static.yaml',
-            'params_file': nav2_params
-        }.items()
-    )
-    rviz_nav2 = ExecuteProcess(
-        cmd=[
-            'ros2', 'run', 'rviz2', 'rviz2',
-            '-d', os.path.join(
-                get_package_share_directory('nav2_bringup'),
-                'rviz',
-                'nav2_default_view.rviz'
-            )
-        ],
-        output='screen'
-    )
-    set_tb3_model = SetEnvironmentVariable('TURTLEBOT3_MODEL', 'burger')
-
     return LaunchDescription([
         folder_arg,
-        set_tb3_model,
         gazebo_launch,
+        #lidar_subscriber,
         teleop_window,
         slam_toolbox_launch,
         rviz_launch,
-        localization_error_node,
-        lidar_static_tf,  
+        #localization_error_node,
+        #lidar_static_tf,  
         spawn_box,
         move_box_node,
-        median_filter,
-        nav2_bringup_launch,
-        rviz_nav2
+        #scan_static_filter
     ])
